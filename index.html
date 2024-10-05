@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCQ Quiz</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        #timer {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007aff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            flex: 1;
+            margin: 0 5px;
+        }
+
+        .nav-btn:hover {
+            background-color: #0051a8;
+        }
+
+        .response-option {
+            display: block;
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #e7e7e7;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .response-option:hover {
+            background-color: #d3d3d3;
+        }
+
+        .response-option.selected {
+            background-color: #007aff;
+            color: white;
+        }
+
+        #submitBtn {
+            margin-top: 20px;
+            padding: 10px 30px;
+            background-color: #007aff;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        #submitBtn:hover {
+            background-color: #0051a8;
+        }
+
+        .response-list {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .response-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #e7e7e7;
+        }
+
+        .navbar {
+      width: 100%;
+      background-color: #007aff;
+      color: white;
+      padding: 15px 0;
+      text-align: center;
+      font-size: 28px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+        .result {
+            margin-top: 20px;
+            font-size: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+      <a href="marks.html">Check Answers</a>
+      </div>
+    <div class="container">
+        <h1>MCQ Quiz</h1>
+        <div id="timer" class="hidden">Time Remaining: <span id="time">120:00</span></div>
+        <form id="quizForm">
+            <div id="questions"></div>
+            <div class="button-container">
+                <button type="button" id="prevBtn" class="nav-btn" disabled>Previous</button>
+                <button type="button" id="nextBtn" class="nav-btn">Next</button>
+            </div>
+            <button type="button" id="submitBtn" class="nav-btn hidden">Submit</button>
+            <button type="button" id="startTimerBtn" class="nav-btn">Start Timer</button>
+        </form>
+        <div id="result" class="hidden">
+            <h2>Your Responses</h2>
+            <div class="response-list" id="responseList"></div>
+            <div class="result hidden" id="finalResult"></div>
+        </div>
+    </div>
+
+    <script>
+        const totalQuestions = 120;
+        let currentQuestionIndex = 0;
+        let timeLeft = 120 * 60; // 120 minutes in seconds
+        let timerInterval;
+        let responses = [];
+        const quizForm = document.getElementById('quizForm');
+        const questionsContainer = document.getElementById('questions');
+        const timerDisplay = document.getElementById('time');
+        const resultContainer = document.getElementById('result');
+        const responseList = document.getElementById('responseList');
+        const nextBtn = document.getElementById('nextBtn');
+        const submitBtn = document.getElementById('submitBtn');
+        const startTimerBtn = document.getElementById('startTimerBtn');
+
+        function createQuestions() {
+            for (let i = 1; i <= totalQuestions; i++) {
+                const questionDiv = document.createElement('div');
+                questionDiv.classList.add('question');
+                questionDiv.innerHTML = `
+                    <p><strong>Question ${i}:</strong></p>
+                    <div class="response-option" data-value="A">A</div>
+                    <div class="response-option" data-value="B">B</div>
+                    <div class="response-option" data-value="C">C</div>
+                    <div class="response-option" data-value="D">D</div>
+                `;
+                questionsContainer.appendChild(questionDiv);
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    submitQuiz(); // Auto-submit on time expiry
+                    return;
+                }
+                timeLeft--;
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            }, 1000);
+            document.getElementById('timer').classList.remove('hidden');
+            startTimerBtn.classList.add('hidden'); // Hide the start timer button after starting
+        }
+
+        function showQuestion() {
+            const questions = document.querySelectorAll('.question');
+            questions.forEach((q, index) => {
+                q.style.display = index === currentQuestionIndex ? 'block' : 'none';
+            });
+            prevBtn.disabled = currentQuestionIndex === 0;
+            submitBtn.classList.remove('hidden'); // Show submit button on any question
+        }
+
+        function handleNext() {
+            const selectedResponse = document.querySelector(`.question:nth-child(${currentQuestionIndex + 1}) .response-option.selected`);
+            responses[currentQuestionIndex] = selectedResponse ? selectedResponse.dataset.value : null;
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex < totalQuestions) {
+                showQuestion();
+            } else {
+                submitQuiz();
+            }
+        }
+
+        function handlePrev() {
+            const selectedResponse = document.querySelector(`.question:nth-child(${currentQuestionIndex + 1}) .response-option.selected`);
+            responses[currentQuestionIndex] = selectedResponse ? selectedResponse.dataset.value : null;
+            currentQuestionIndex--;
+            showQuestion();
+        }
+
+        function submitQuiz() {
+            clearInterval(timerInterval);
+            responseList.innerHTML = '';
+
+            for (let i = 1; i <= totalQuestions; i++) {
+                const answer = responses[i - 1];
+                const listItem = document.createElement('div');
+                listItem.className = 'response-item';
+                listItem.innerHTML = `Question ${i}: ${answer ? answer : 'Not Answered'}`;
+                responseList.appendChild(listItem);
+            }
+
+            quizForm.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+        }
+
+        function handleResponseSelection(event) {
+            if (event.target.classList.contains('response-option')) {
+                const selectedOptions = document.querySelectorAll(`.question:nth-child(${currentQuestionIndex + 1}) .response-option`);
+                selectedOptions.forEach(option => option.classList.remove('selected'));
+                event.target.classList.add('selected');
+            }
+        }
+
+        nextBtn.addEventListener('click', handleNext);
+        prevBtn.addEventListener('click', handlePrev);
+        submitBtn.addEventListener('click', submitQuiz);
+        startTimerBtn.addEventListener('click', startTimer);
+        questionsContainer.addEventListener('click', handleResponseSelection);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            createQuestions();
+            showQuestion();
+        });
+    </script>
+</body>
+</html>
